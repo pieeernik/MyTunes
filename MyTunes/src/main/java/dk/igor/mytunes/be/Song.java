@@ -8,6 +8,7 @@ public class Song {
     public String time;
     private Integer id;
 
+
     public Song(String title, String artist, String category, String time, String filePath) {
         this(title, artist, category, time, filePath, null);
     }
@@ -28,12 +29,7 @@ public class Song {
     public String getFilePath() { return filePath;}
     public int getId() { return id;}
 
-//    public String getUrl() {
-//        return "file:///" + filePath;
-//    }
-
     public void setId(int id) { this.id = id; }
-
 
     @Override
     public String toString() {

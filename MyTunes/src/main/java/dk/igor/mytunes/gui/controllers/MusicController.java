@@ -3,7 +3,6 @@ package dk.igor.mytunes.gui.controllers;
 import dk.igor.mytunes.be.Playlist;
 import dk.igor.mytunes.be.Song;
 import dk.igor.mytunes.be.SongsInPlaylist;
-import dk.igor.mytunes.bll.MusicManager;
 import dk.igor.mytunes.dal.PlaylistDAODB;
 import dk.igor.mytunes.dal.SongDAODB;
 import dk.igor.mytunes.dal.SongInPlaylistDAODB;
@@ -16,14 +15,19 @@ import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import javafx.stage.FileChooser;
+
+import java.io.File;
 import java.net.URL;
 import java.util.ResourceBundle;
 
 public class MusicController implements Initializable {
     private final PlayerModel playerModel = new PlayerModel();
-    private final MusicManager musicManager = new MusicManager();
     private FilteredList<Song> filteredSongs;
+    private MediaPlayer mediaPlayer;
+    private int currentSongIndex = -1;
 
     @FXML
     public ListView<Song> songsInPlaylistListView;
@@ -39,8 +43,16 @@ public class MusicController implements Initializable {
 
         songListView.setItems(playerModel.getSongObservableList());
         playlistListView.setItems(playerModel.getPlaylistObservableList());
+
         filteredSongs = new FilteredList<>(playerModel.getSongObservableList(), p -> true);
         songListView.setItems(filteredSongs);
+
+        playPauseButton.setText("Play");
+
+        if (mediaPlayer != null) {
+            mediaPlayer.setVolume(volumeSlider.getValue());
+        }
+
 
         playlistListView.setOnMouseClicked(mouseEvent -> {
             if (mouseEvent.getClickCount() == 2) {
@@ -52,22 +64,91 @@ public class MusicController implements Initializable {
     }
 
     @FXML
-    private Label currentlyPlayingLabel;
+private Label playSongLabel;
 
     @FXML
     public void playSong(Song song) {
-        String songName = song.getTitle();
-        currentlyPlayingLabel.setText(songName + " ... Is Playing");
+        if (song == null || song.getFilePath() == null || song.getFilePath().isEmpty()) {
+            showError("Song does not have a valid file path!");
+            return;
+        }
+
+        if (mediaPlayer != null) {
+            mediaPlayer.stop();
+        }
+
+        Media media = new Media(new File(song.getFilePath()).toURI().toString());
+        mediaPlayer = new MediaPlayer(media);
+        mediaPlayer.play();
+
+        playSongLabel.setText(song.getTitle() + " ... Is Playing");
+
+        mediaPlayer.setOnEndOfMedia(() -> {
+            playSongLabel.setText("(none) ... Is Playing");
+            playPauseButton.setText("Play");
+        });
     }
 
     @FXML
-    private void onClickPlayPauseMusic() {}
+    public void onPlayPauseButtonClick() {
+        Song selectedSong = songsInPlaylistListView.getSelectionModel().getSelectedItem();
+
+        if (selectedSong == null) {
+            showError("No song selected!");
+            return;
+        }
+
+        try {
+            if (mediaPlayer != null && mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+                mediaPlayer.pause();
+                playPauseButton.setText("Play");
+            } else {
+                playSong(selectedSong);
+                playPauseButton.setText("Pause");
+            }
+        } catch (Exception e) {
+            showError("Error toggling play/pause: " + e.getMessage());
+        }
+    }
+
+
 
     @FXML
-    private void onClickSkipMusic() {}
+    public void onNextButtonClick() {
+        if (!songsInPlaylistListView.getItems().isEmpty()) {
+            int nextIndex = (currentSongIndex + 1) % songsInPlaylistListView.getItems().size();
+            Song nextSong = songsInPlaylistListView.getItems().get(nextIndex);
+            playSong(nextSong);
+            currentSongIndex = nextIndex;
+        } else {
+            showError("No songs available!");
+        }
+    }
 
     @FXML
-    private void onClickPlayPreviousSong() {}
+    public void onPreviousButtonClick() {
+        if (!songsInPlaylistListView.getItems().isEmpty()) {
+            int previousIndex = (currentSongIndex - 1 + songsInPlaylistListView.getItems().size()) % songsInPlaylistListView.getItems().size();
+            Song previousSong = songsInPlaylistListView.getItems().get(previousIndex);
+            playSong(previousSong);
+            currentSongIndex = previousIndex;
+        } else {
+            showError("No songs available!");
+        }
+    }
+
+    @FXML
+    private Slider volumeSlider;
+
+    @FXML
+    private void onVolumeSliderChange() {
+        if (mediaPlayer != null) {
+            mediaPlayer.setVolume(volumeSlider.getValue());
+        }
+    }
+
+    @FXML
+    private Button playPauseButton;
 
     @FXML
     private TextField filterField;
@@ -314,12 +395,10 @@ public class MusicController implements Initializable {
             try {
                 SongDAODB songDAODB = new SongDAODB();
                 songDAODB.update(editedSong);
-
                 int index = songListView.getItems().indexOf(selectedSong);
                 if (index >= 0) {
                     songListView.getItems().set(index, editedSong);
                 }
-
                 songListView.refresh();
             } catch (Exception e) {
                 showError("Error updating the song: " + e.getMessage());

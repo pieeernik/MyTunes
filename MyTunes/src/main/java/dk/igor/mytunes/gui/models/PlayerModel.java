@@ -35,17 +35,15 @@ public class PlayerModel {
 
 
     public ObservableList<Playlist> getPlaylistObservableList() { return playlistObservableList;}
-//    public ObservableList<SongsInPlaylist> getSongsInPlaylistObservableList() { return songsInPlaylistObservableList; }
     public ObservableList<Song> getSongObservableList() {
         return songObservableList;
     }
-
-//    public void addSongsInPlaylist(SongsInPlaylist songsInPlaylist) {songsInPlaylistObservableList.add(songsInPlaylist);}
 
     public void addPlaylist(Playlist playlist) {
         playlistObservableList.add(playlist);
     }
     public void addSong(Song song) { songObservableList.add(song); }
+
     public List<Song> getSongsInPlaylist(Playlist playlist) {
         return songsInPlaylistManager.getAllSongsForPlaylist(playlist);
     }

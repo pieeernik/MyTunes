@@ -3,6 +3,7 @@ package dk.igor.mytunes.be;
 public class SongsInPlaylist {
     private int idSong;
     private int idPlaylist;
+    private Song song;
 
     public SongsInPlaylist(int idSong, int idPlaylist) {
         this.idSong = idSong;
@@ -17,6 +18,10 @@ public class SongsInPlaylist {
         return idPlaylist;
     }
 
+
+    public Song getSong() {
+        return song;
+    }
 
     @Override
     public String toString() {
